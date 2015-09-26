@@ -33,3 +33,14 @@ cat > /etc/security/limits.conf <<EOF
 * soft nproc 65535
 * hard nproc 65535
 EOF
+
+# mackerel-agent
+curl -fsSL https://mackerel.io/assets/files/scripts/setup-apt.sh | sh
+apt-get install mackerel-agent
+mv /etc/mackerel-agent/mackerel-agent.conf /etc/mackerel-agent/mackerel-agent.conf.bak
+sudo sh << SCRIPT
+cat >>/etc/mackerel-agent/mackerel-agent.conf <<'EOF';
+apikey = ""
+EOF
+SCRIPT
+service mackerel-agent start
