@@ -4,7 +4,7 @@
 #
 
 apt update
-apt install sysstat htop strace percona-toolokit tcpdump
+apt install sysstat htop strace percona-toolkit tcpdump
 
 # sysstat: sar
 echo 'ENABLED="true"' > /etc/default/sysstat
@@ -14,7 +14,7 @@ service sysstat restart
 cat > /etc/sysctl.conf <<EOF
 net.ipv4.ip_local_port_range = 1024 65000
 
-net.core.somaxconn = 262144
+net.core.somaxconn = 32768
 
 #net.ipv4.tcp_tw_reuse = 1
 #net.ipv4.tcp_fin_timeout = 3
