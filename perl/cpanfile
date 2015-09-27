@@ -10,3 +10,6 @@ requires 'Devel::KYTProf';
 requires 'Starlet';
 requires 'Server::Starter';
 requires 'Redis::Fast';
+
+requires 'Cache::Memcached::Fast';
+requires 'Sereal';
