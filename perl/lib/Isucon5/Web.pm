@@ -110,7 +110,7 @@ sub _prefetch_users {
             map { ( $_->{id} => $_ ) } @$rels
         };
     };
-    global_stash()->{users}->{account} //= do {
+    global_stash()->{users}->{account_name} //= do {
         +{
             map { ( $_->{account_name} => $_) } @$rels
         };
