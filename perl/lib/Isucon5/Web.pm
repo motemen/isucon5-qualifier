@@ -91,8 +91,16 @@ sub abort_content_not_found {
     $C->halt(404, encode_utf8($C->tx->render('error.tx', { message => '要求されたコンテンツは存在しません' })));
 }
 
+our %auth_data;
 sub authenticate {
     my ($email, $password) = @_;
+
+    my $k = sprintf "%s:%s", $email, $password;
+    if (defined $auth_data{ $k }) {
+        session()->{user_id} = $auth_data{$k}{id};
+        return $auth_data{ $k };
+    }
+
     my $query = <<SQL;
 SELECT u.id AS id, u.account_name AS account_name, u.nick_name AS nick_name, u.email AS email
 FROM users u
@@ -104,6 +112,7 @@ SQL
         abort_authentication_error();
     }
     session()->{user_id} = $result->{id};
+    $auth_data{ $k } = $result;
     return $result;
 }
 
