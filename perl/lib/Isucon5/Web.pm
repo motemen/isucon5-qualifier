@@ -104,7 +104,7 @@ sub _prefetch_users {
 
     global_stash()->{users} //= {};
 
-    my $rels = db->select_all('SELECT * FROM users');↲
+    my $rels = db->select_all('SELECT * FROM users');
     global_stash()->{users}{id} //= do {
         +{
             map { ( $_->{id} => $_ ) } @$rels
