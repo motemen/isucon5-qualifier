@@ -106,12 +106,21 @@ sub user_from_account {
     return $user;
 }
 
+sub friend_ids_hash {
+    return $C->stash->{friend_ids_hash} //= do {
+        my $user_id = session->{user_id};
+        my $rels = db->select_all(
+            'SELECT another FROM relations WHERE one = ?', $user_id
+        );
+        +{
+            map { ( $_->{another} => 1 ) } @$rels
+        };
+    };
+}
+
 sub is_friend {
     my ($another_id) = @_;
-    my $user_id = session()->{user_id};
-    my $query = 'SELECT COUNT(1) AS cnt FROM relations WHERE (one = ? AND another = ?) OR (one = ? AND another = ?)';
-    my $cnt = db->select_one($query, $user_id, $another_id, $another_id, $user_id);
-    return $cnt > 0 ? 1 : 0;
+    return friend_ids_hash()->{$another_id};
 }
 
 sub is_friend_account {
