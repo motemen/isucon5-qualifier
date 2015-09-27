@@ -100,6 +100,8 @@ sub current_user {
         session()->{user_id} = undef;
         abort_authentication_error();
     }
+    stash()->{user} = $user;
+
     return $user;
 }
 
