@@ -54,6 +54,26 @@ sub global_stash {
    return $gstash;
 }
 
+
+sub _prefetch_users {
+    return if defined global_stash()->{users};
+
+    global_stash()->{users} //= {};
+
+    my $rels = db->select_all('SELECT * FROM users');
+    global_stash()->{users}->{id} //= do {
+        +{
+            map { ( $_->{id} => $_ ) } @$rels
+        };
+    };
+    global_stash()->{users}->{account_name} //= do {
+        +{
+            map { ( $_->{account_name} => $_) } @$rels
+        };
+    };
+}
+
+
 sub redirect {
     $C->redirect(@_);
 }
@@ -89,13 +109,15 @@ SQL
 
 sub current_user {
     my ($self, $c) = @_;
+
     my $user = stash()->{user};
-
     return $user if ($user);
-
     return undef if (!session()->{user_id});
 
-    $user = db->select_row('SELECT id, account_name, nick_name, email FROM users WHERE id=?', session()->{user_id});
+    _prefetch_users();
+    $user = global_stash()->{users}{id}{ session()->{user_id} };
+
+    #$user = db->select_row('SELECT id, account_name, nick_name, email FROM users WHERE id=?', session()->{user_id});
     if (!$user) {
         session()->{user_id} = undef;
         abort_authentication_error();
@@ -108,25 +130,6 @@ sub current_user {
 sub push_header_route {
     my ($route, $c) = @_;
     ($c || $C)->res->headers->header('X-Dispatch' => $route);
-}
-
-
-sub _prefetch_users {
-    return if defined global_stash()->{users};
-
-    global_stash()->{users} //= {};
-
-    my $rels = db->select_all('SELECT * FROM users');
-    global_stash()->{users}->{id} //= do {
-        +{
-            map { ( $_->{id} => $_ ) } @$rels
-        };
-    };
-    global_stash()->{users}->{account_name} //= do {
-        +{
-            map { ( $_->{account_name} => $_) } @$rels
-        };
-    };
 }
 
 sub get_user {
