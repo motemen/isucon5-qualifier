@@ -7,8 +7,11 @@ use Kossy;
 use DBIx::Sunny;
 use Encode;
 use Cache::Memcached::Fast;
-use Sereal qw(encode_sereal decode_sereal);
+use Sereal;
 use Time::Piece;
+
+my $enc = Sereal::Encoder->new;
+my $dec = Sereal::Decoder->new;
 
 my $memd = Cache::Memcached::Fast->new(
     { servers => [ { address => 'localhost:11211' } ] },
@@ -266,7 +269,7 @@ SQL
 
     my $entries_of_friends = [];
 
-    my $entries_cached = [ map { decode_sereal $_ } split /,/, $memd->get('latest_entries_1000:v1') ];
+    my $entries_cached = [ map { $dec->decode($_) } split /,/, $memd->get('latest_entries_1000:v1') ];
     for my $entry (@$entries_cached) {
         next if (!is_friend($entry->{user_id}));
         my $owner = get_user($entry->{user_id});
@@ -482,7 +485,7 @@ post '/diary/entry' => [qw(set_global authenticated)] => sub {
 
     $memd->prepend(
         'latest_entries_1000:v1',
-        encode_sereal({
+        $enc->encode({
             title => $title,
             user_id => current_user()->{id},
             private => $private ? 1 : 0,
@@ -575,7 +578,7 @@ get '/initialize' => sub {
         join ',', map {
             my ($title) = split /\n/, delete $_->{body};
             $_->{title} = $title;
-            encode_sereal $_;
+            $enc->encode($_);
         } @$entries
     );
 };
