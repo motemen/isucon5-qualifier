@@ -411,7 +411,7 @@ get '/diary/entries/:account_name' => [qw(set_global authenticated)] => sub {
     my %entry_count = map { $_->{entry_id} => $_->{cnt} } @$data; # cntでいいか不安
 
     my $entries = [];
-    for my $entry (@entry_list) {
+    for my $entry (@$entry_list) {
         $entry->{is_private} = ($entry->{private} == 1);
         my ($title, $content) = split(/\n/, $entry->{body}, 2);
         $entry->{title} = $title;
