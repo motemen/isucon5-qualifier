@@ -23,9 +23,6 @@ builder {
     } if $INC{'Devel/NYTProf.pm'};
 
     enable 'ReverseProxy';
-    enable 'Static',
-        path => qr!^/(?:(?:css|fonts|js)/|favicon\.ico$)!,
-        root => File::Basename::dirname($root_dir) . '/static';
     enable 'Session::Cookie',
         session_key => "isuxi_session",
         secret => $ENV{ISUCON5_SESSION_SECRET} || 'beermoris',
