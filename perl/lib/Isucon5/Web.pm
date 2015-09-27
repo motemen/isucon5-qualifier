@@ -477,11 +477,11 @@ SQL
 get '/friends' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
     push_header_route('get-friends');
-    my $query = 'SELECT * FROM relations WHERE one = ? OR another = ? ORDER BY created_at DESC';
+    my $query = 'SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC';
     my %friends = ();
     my $friends = [];
     for my $rel (@{db->select_all($query, current_user()->{id}, current_user()->{id})}) {
-        my $key = ($rel->{one} == current_user()->{id} ? 'another' : 'one');
+        my $key = 'another';
         $friends{$rel->{$key}} ||= do {
             my $friend = get_user($rel->{$key});
             $rel->{account_name} = $friend->{account_name};
