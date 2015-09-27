@@ -406,7 +406,7 @@ get '/diary/entries/:account_name' => [qw(set_global authenticated)] => sub {
     }
 
     my $entry_list = db->select_all($query, $owner->{id});
-    my $q = join (',',  ('?') x scalar(@entry_list));
+    my $q = join (',',  ('?') x scalar(@$entry_list));
     my $data = db->select_all('SELECT entry_id, COUNT(*) AS cnt FROM comments WHERE entry_id IN (' . $q . ') GROUP BY entry_id', map { $_->{id} } @$entry_list);
     my %entry_count = map { $_->{entry_id} => $_->{cnt} } @$data; # cntでいいか不安
 
