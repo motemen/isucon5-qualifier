@@ -3,7 +3,7 @@ Description=isuxi-perl
 After=syslog.target
 
 [Service]
-WorkingDirectory=/home/isucon/webapp/perl
+WorkingDirectory=/home/isucon/deploy/perl
 EnvironmentFile=/home/isucon/env.sh
 Environment=PLACK_ENV=production
 
