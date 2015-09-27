@@ -12,7 +12,7 @@ while (1) {
     warn "id > $comment_id ...";
 
     my $comments = $db->select_all(
-        'SELECT id,entry_id FROM comments WHERE owner_id = 0 AND id > ? LIMIT 10000 ORDER BY id ASC',
+        'SELECT id,entry_id FROM comments WHERE owner_id = 0 AND id > ? ORDER BY id ASC LIMIT 10000',
         $comment_id,
     );
     if (@$comments == 0) {
