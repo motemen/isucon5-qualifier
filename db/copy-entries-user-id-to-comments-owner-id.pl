@@ -26,5 +26,5 @@ while (1) {
         );
     }
 
-    $comment_id = $comments->[-1]->{id};
+    $comment_id = $comments->[-1]->{comment_id};
 }
