@@ -6,6 +6,16 @@ use utf8;
 use Kossy;
 use DBIx::Sunny;
 use Encode;
+use Cache::Memcached::Fast;
+use Sereal;
+use Time::Piece;
+
+my $enc = Sereal::Encoder->new;
+my $dec = Sereal::Decoder->new;
+
+my $memd = Cache::Memcached::Fast->new(
+    { servers => [ { address => 'localhost:11211' } ] },
+);
 
 my $db;
 sub db {
@@ -258,16 +268,27 @@ SQL
     }
 
     my $entries_of_friends = [];
-    for my $entry (@{db->select_all('SELECT * FROM entries ORDER BY created_at DESC LIMIT 1000')}) {
+
+    my $entries_cached = [ map { $dec->decode($_) } split /,/, $memd->get('latest_entries_1000:v1') ];
+    for my $entry (@$entries_cached) {
         next if (!is_friend($entry->{user_id}));
-        my ($title) = split(/\n/, $entry->{body});
-        $entry->{title} = $title;
         my $owner = get_user($entry->{user_id});
         $entry->{account_name} = $owner->{account_name};
         $entry->{nick_name} = $owner->{nick_name};
         push @$entries_of_friends, $entry;
         last if @$entries_of_friends+0 >= 10;
     }
+
+#   for my $entry (@{db->select_all('SELECT * FROM entries ORDER BY created_at DESC LIMIT 1000')}) {
+#       next if (!is_friend($entry->{user_id}));
+#       my ($title) = split(/\n/, $entry->{body});
+#       $entry->{title} = $title;
+#       my $owner = get_user($entry->{user_id});
+#       $entry->{account_name} = $owner->{account_name};
+#       $entry->{nick_name} = $owner->{nick_name};
+#       push @$entries_of_friends, $entry;
+#       last if @$entries_of_friends+0 >= 10;
+#   }
 
     my $comments_of_friends = [];
     for my $comment (@{db->select_all('SELECT * FROM comments ORDER BY created_at DESC LIMIT 1000')}) {
@@ -456,11 +477,22 @@ post '/diary/entry' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
     push_header_route('post-diary-entry');
     my $query = 'INSERT INTO entries (user_id, private, body) VALUES (?,?,?)';
-    my $title = $c->req->param('title');
+    my $title = $c->req->param('title') || "タイトルなし";
     my $content = $c->req->param('content');
     my $private = $c->req->param('private');
-    my $body = ($title || "タイトルなし") . "\n" . $content;
+    my $body = $title . "\n" . $content;
     db->query($query, current_user()->{id}, ($private ? '1' : '0'), $body);
+
+    $memd->prepend(
+        'latest_entries_1000:v1',
+        $enc->encode({
+            title => $title,
+            user_id => current_user()->{id},
+            private => $private ? 1 : 0,
+            created_at => Time::Piece->new->strftime('%Y-%m-%d %H:%M:%S'),
+        }) . ',',
+    );
+
     redirect('/diary/entries/'.current_user()->{account_name});
 };
 
@@ -539,6 +571,16 @@ get '/initialize' => sub {
     db->query("DELETE FROM footprints WHERE id > 500000");
     db->query("DELETE FROM entries WHERE id > 500000");
     db->query("DELETE FROM comments WHERE id > 1500000");
+
+    my $entries = db->select_all('SELECT * FROM entries ORDER BY created_at DESC LIMIT 1000');
+    $memd->set(
+        'latest_entries_1000:v1',
+        join ',', map {
+            my ($title) = split /\n/, delete $_->{body};
+            $_->{title} = $title;
+            $enc->encode($_);
+        } @$entries
+    );
 };
 
 1;
