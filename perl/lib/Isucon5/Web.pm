@@ -99,6 +99,13 @@ sub get_user {
     return $user;
 }
 
+sub get_users {
+    my @ids = @_;
+    my $q = join(',', ('?') x (scalar @ids));
+    my @users = db->select_row('SELECT * FROM users WHERE id IN(' . $q . ')', @ids);
+    return @users;
+}
+
 sub user_from_account {
     my ($account_name) = @_;
     my $user = db->select_row('SELECT * FROM users WHERE account_name = ?', $account_name);
