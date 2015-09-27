@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use DBIx::Sunny;
+use List::MoreUtils qw(uniq);
 
 my $db = DBIx::Sunny->connect(
     'dbi:mysql:database=isucon5q;host=localhost;port=3306', 'root', ''
@@ -21,7 +22,7 @@ while (1) {
 
     my $entries = $db->select_all(
         'SELECT id,user_id FROM entries WHERE id IN (?)',
-        [ map { $_->{entry_id} } @$comments ],
+        [ uniq map { $_->{entry_id} } @$comments ],
     );
     my $owner_id_by_entry_id = +{
         map { +( $_->{id} => $_->{user_id} ) } @$entries
