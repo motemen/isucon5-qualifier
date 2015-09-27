@@ -87,6 +87,11 @@ sub current_user {
     return $user;
 }
 
+sub push_header_route {
+    my ($route, $c) = @_;
+    ($c || $C)->res->headers->header('X-Dispatch' => $route);
+}
+
 sub get_user {
     my ($user_id) = @_;
     my $user = db->select_row('SELECT * FROM users WHERE id = ?', $user_id);
@@ -163,11 +168,13 @@ filter 'set_global' => sub {
 
 get '/login' => sub {
     my ($self, $c) = @_;
+    push_header_route('get-login', $c);
     $c->render('login.tx', { message => '高負荷に耐えられるSNSコミュニティサイトへようこそ!' });
 };
 
 post '/login' => [qw(set_global)] => sub {
     my ($self, $c) = @_;
+    push_header_route('post-login');
     my $email = $c->req->param("email");
     my $password = $c->req->param("password");
     authenticate($email, $password);
@@ -176,12 +183,14 @@ post '/login' => [qw(set_global)] => sub {
 
 get '/logout' => [qw(set_global)] => sub {
     my ($self, $c) = @_;
+    push_header_route('get-logout');
     session()->{user_id} = undef;
     redirect('/login');
 };
 
 get '/' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
+    push_header_route('get-root');
 
     my $profile = db->select_row('SELECT * FROM profiles WHERE user_id = ?', current_user()->{id});
 
@@ -286,6 +295,7 @@ SQL
 
 get '/profile/:account_name' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
+    push_header_route('get-profile-accountname');
     my $account_name = $c->args->{account_name};
     my $owner = user_from_account($account_name);
     my $prof = db->select_row('SELECT * FROM profiles WHERE user_id = ?', $owner->{id});
@@ -319,6 +329,7 @@ get '/profile/:account_name' => [qw(set_global authenticated)] => sub {
 
 post '/profile/:account_name' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
+    push_header_route('post-profile-accountname');
     my $account_name = $c->args->{account_name};
     if ($account_name != current_user()->{account_name}) {
         abort_permission_denied();
@@ -348,6 +359,7 @@ SQL
 
 get '/diary/entries/:account_name' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
+    push_header_route('get-diary-entries-accountname');
     my $account_name = $c->args->{account_name};
     my $owner = user_from_account($account_name);
     my $query;
@@ -376,6 +388,7 @@ get '/diary/entries/:account_name' => [qw(set_global authenticated)] => sub {
 
 get '/diary/entry/:entry_id' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
+    push_header_route('get-diary-entryid');
     my $entry_id = $c->args->{entry_id};
     my $entry = db->select_row('SELECT * FROM entries WHERE id = ?', $entry_id);
     abort_content_not_found() if (!$entry);
@@ -405,6 +418,7 @@ get '/diary/entry/:entry_id' => [qw(set_global authenticated)] => sub {
 
 post '/diary/entry' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
+    push_header_route('post-diary-entry');
     my $query = 'INSERT INTO entries (user_id, private, body) VALUES (?,?,?)';
     my $title = $c->req->param('title');
     my $content = $c->req->param('content');
@@ -416,6 +430,7 @@ post '/diary/entry' => [qw(set_global authenticated)] => sub {
 
 post '/diary/comment/:entry_id' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
+    push_header_route('post-diary-comment-entryid');
     my $entry_id = $c->args->{entry_id};
     my $entry = db->select_row('SELECT * FROM entries WHERE id = ?', $entry_id);
     abort_content_not_found() if (!$entry);
@@ -431,6 +446,7 @@ post '/diary/comment/:entry_id' => [qw(set_global authenticated)] => sub {
 
 get '/footprints' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
+    push_header_route('get-footprints');
     my $query = <<SQL;
 SELECT user_id, owner_id, DATE(created_at) AS date, MAX(created_at) as updated
 FROM footprints
@@ -451,6 +467,7 @@ SQL
 
 get '/friends' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
+    push_header_route('get-friends');
     my $query = 'SELECT * FROM relations WHERE one = ? OR another = ? ORDER BY created_at DESC';
     my %friends = ();
     my $friends = [];
@@ -470,6 +487,7 @@ get '/friends' => [qw(set_global authenticated)] => sub {
 
 post '/friends/:account_name' => [qw(set_global authenticated)] => sub {
     my ($self, $c) = @_;
+    push_header_route('post-friends-accountname');
     my $account_name = $c->args->{account_name};
     if (!is_friend_account($account_name)) {
         my $user = user_from_account($account_name);
