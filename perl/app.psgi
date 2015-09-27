@@ -9,7 +9,6 @@ my $root_dir = File::Basename::dirname(__FILE__);
 
 my $app = Isucon5::Web->psgi($root_dir);
 builder {
-    enable 'ReverseProxy';
     enable 'Session::Cookie',
         session_key => "isuxi_session",
         secret => $ENV{ISUCON5_SESSION_SECRET} || 'beermoris',
