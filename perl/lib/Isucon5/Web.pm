@@ -107,6 +107,26 @@ SQL
     return $result;
 }
 
+# mysql> SELECT user_id,owner_id,DATE(created_at),COUNT(*) c,MAX(created_at) FROM footprints GROUP BY user_id,owner_id,DATE(created_at) HAVING c <> 1;
+# +---------+----------+------------------+---+---------------------+
+# | user_id | owner_id | DATE(created_at) | c | MAX(created_at)     |
+# +---------+----------+------------------+---+---------------------+
+# |    2169 |     4535 | 2014-09-12       | 2 | 2014-09-12 08:38:00 |
+# |    4107 |     1912 | 2014-11-08       | 2 | 2014-11-08 21:36:00 |
+# |    4445 |      404 | 2014-05-14       | 2 | 2014-05-14 14:06:00 |
+# |    4782 |     3696 | 2014-12-29       | 2 | 2014-12-29 22:38:00 |
+# |    4870 |     4457 | 2014-08-23       | 2 | 2014-08-23 15:22:00 |
+# +---------+----------+------------------+---+---------------------+
+# 5 rows in set (4.70 sec)
+
+my $dup_footprints = {
+    '2169:4535:2014-09-12' => '2014-09-12 08:38:00',
+    '4107:1912:2014-11-08' => '2014-11-08 21:36:00',
+    '4445:404:2014-05-14' => '2014-05-14 14:06:00',
+    '4782:3696:2014-12-29' => '2014-12-29 22:38:00',
+    '4870:4457:2014-08-23' => '2014-08-23 15:22:00',
+}
+
 sub current_user {
     my ($self, $c) = @_;
 
@@ -173,8 +193,13 @@ sub is_friend_account {
 sub mark_footprint {
     my ($user_id) = @_;
     if ($user_id != current_user()->{id}) {
-        my $query = 'INSERT INTO footprints (user_id,owner_id) VALUES (?,?)';
-        db->query($query, $user_id, current_user()->{id});
+        my $id = db->select_one('SELECT id FROM footprints WHERE user_id = ? AND owner_id = ? AND DATE(created_at) = DATE(CURRENT_TIMESTAMP()) ORDER BY created_at DESC LIMIT 1', $user_id, current_user()->{id});
+        if ($id) {
+            db->query('UPDATE footprints SET created_at = NOW() WHERE id = ? AND id > 500000', $id);
+        } else {
+            my $query = 'INSERT INTO footprints (user_id,owner_id) VALUES (?,?)';
+            db->query($query, $user_id, current_user()->{id});
+        }
     }
 }
 
@@ -315,19 +340,23 @@ SQL
     my $friends_count = db->select_one('SELECT COUNT(*) FROM relations WHERE one = ?', current_user()->{id});
 
     my $query = <<SQL;
-SELECT user_id, owner_id, DATE(created_at) AS date, MAX(created_at) as updated
+SELECT user_id, owner_id, DATE(created_at) AS date, created_at AS updated
 FROM footprints
 WHERE user_id = ?
-GROUP BY user_id, owner_id, DATE(created_at)
-ORDER BY updated DESC
-LIMIT 10
+ORDER BY created_at DESC
+LIMIT 20
 SQL
     my $footprints = [];
+    my $fp_seen = {};
     for my $fp (@{db->select_all($query, current_user()->{id})}) {
         my $owner = get_user($fp->{owner_id});
         $fp->{account_name} = $owner->{account_name};
         $fp->{nick_name} = $owner->{nick_name};
+        if ($fp_seen->{"$fp->{user_id}:$fp->{owner_id}:$fp->{date}"}++) {
+            continue;
+        }
         push @$footprints, $fp;
+        last if scalar @$footprints == 10;
     }
 
     my $locals = {
