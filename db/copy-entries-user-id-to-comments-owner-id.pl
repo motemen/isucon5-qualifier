@@ -12,19 +12,27 @@ while (1) {
     warn "id > $comment_id ...";
 
     my $comments = $db->select_all(
-        'SELECT comments.id AS comment_id, entries.user_id AS owner_id FROM comments JOIN entries ON entry_id = entries.id WHERE comments.id > ? LIMIT 5000', $comment_id
+        'SELECT id,entry_id FROM comments WHERE owner_id = 0 AND id > ? LIMIT 10000',
     );
     if (@$comments == 0) {
         last;
     }
 
+    my $entries = $db->select_all(
+        'SELECT id,user_id FROM entries WHERE id IN (?)',
+        [ map { $_->{entry_id} } @$comments ],
+    );
+    my $owner_id_by_entry_id = +{
+        map { +( $_->{id} => $_->{user_id} ) } @$entries
+    };
+
     for my $c (@$comments) {
         $db->query(
             'UPDATE comments SET owner_id = ? WHERE id = ?',
-            $c->{owner_id},
-            $c->{comment_id},
+            $owner_by_entry_id->{$c->{entry_id}},
+            $c->{id},
         );
     }
 
-    $comment_id = $comments->[-1]->{comment_id};
+    $comment_id = $comments->[-1]->{id};
 }
