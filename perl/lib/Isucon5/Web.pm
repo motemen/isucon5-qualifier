@@ -291,27 +291,30 @@ SQL
 #       last if @$entries_of_friends+0 >= 10;
 #   }
 
-    my $comments_data = db->select_all('SELECT * FROM comments ORDER BY created_at DESC LIMIT 1000');
-    my $q = join (',', ('?') x scalar(@$comments_data));
-    my $entry_list = db->select_all('SELECT * FROM entries WHERE id IN(' . $q . ')', map { $_->{entry_id} } @$comments_data );
-    my %entry_data = map { $_->{id} => $_ } @$entry_list;
-
     my $comments_of_friends = [];
-    for my $comment (@$comments_data) {
-        next if (!is_friend($comment->{user_id}));
-        #my $entry = db->select_row('SELECT * FROM entries WHERE id = ?', $comment->{entry_id});
-        my $entry = $entry_data{ $comment->{entry_id} };
+    for (my $offset = 0; ;$offset += 50) {
+        my $comments_data = db->select_all("SELECT * FROM comments ORDER BY created_at DESC LIMIT $offset, 50");
+        my $q = join (',', ('?') x scalar(@$comments_data));
+        my $entry_list = db->select_all('SELECT * FROM entries WHERE id IN(' . $q . ')', map { $_->{entry_id} } @$comments_data );
+        my %entry_data = map { $_->{id} => $_ } @$entry_list;
 
-        $entry->{is_private} = ($entry->{private} == 1);
-        next if ($entry->{is_private} && !permitted($entry->{user_id}));
-        my $entry_owner = get_user($entry->{user_id});
-        $entry->{account_name} = $entry_owner->{account_name};
-        $entry->{nick_name} = $entry_owner->{nick_name};
-        $comment->{entry} = $entry;
-        my $comment_owner = get_user($comment->{user_id});
-        $comment->{account_name} = $comment_owner->{account_name};
-        $comment->{nick_name} = $comment_owner->{nick_name};
-        push @$comments_of_friends, $comment;
+        for my $comment (@$comments_data) {
+            next if (!is_friend($comment->{user_id}));
+            #my $entry = db->select_row('SELECT * FROM entries WHERE id = ?', $comment->{entry_id});
+            my $entry = $entry_data{ $comment->{entry_id} };
+
+            $entry->{is_private} = ($entry->{private} == 1);
+            next if ($entry->{is_private} && !permitted($entry->{user_id}));
+            my $entry_owner = get_user($entry->{user_id});
+            $entry->{account_name} = $entry_owner->{account_name};
+            $entry->{nick_name} = $entry_owner->{nick_name};
+            $comment->{entry} = $entry;
+            my $comment_owner = get_user($comment->{user_id});
+            $comment->{account_name} = $comment_owner->{account_name};
+            $comment->{nick_name} = $comment_owner->{nick_name};
+            push @$comments_of_friends, $comment;
+            last if @$comments_of_friends+0 >= 10;
+        }
         last if @$comments_of_friends+0 >= 10;
     }
 
