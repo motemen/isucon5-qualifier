@@ -7,7 +7,7 @@ WorkingDirectory=/home/isucon/deploy/perl
 EnvironmentFile=/home/isucon/env.sh
 Environment=PLACK_ENV=production
 
-ExecStart=/home/isucon/.local/perl/bin/carton exec -- plackup -s Starman --socket /home/isucon/isucon.sock --workers 10 --disable-keepalive app.psgi
+ExecStart=/home/isucon/.local/perl/bin/carton exec -- plackup -s Starlet --socket /home/isucon/isucon.sock --workers 10 --disable-keepalive app.psgi
 
 [Install]
 WantedBy=multi-user.target
