@@ -13,6 +13,7 @@ while (1) {
 
     my $comments = $db->select_all(
         'SELECT id,entry_id FROM comments WHERE owner_id = 0 AND id > ? LIMIT 10000',
+        $comment_id,
     );
     if (@$comments == 0) {
         last;
