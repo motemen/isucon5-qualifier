@@ -1,3 +1,5 @@
 #!/bin/sh
 
-echo ssh isucon@isucon05 "cd ~/deploy && git pull && carton install && supervisorctl restart isucon_perl && ~/slack.pl 'deploy finished $(git rev-parse --short HEAD)'"
+set -x
+
+ssh -tt isucon02 'sudo su - isucon sh -c "cd ~/deploy && git pull && cd perl && ~/.local/perl/bin/carton install && systemctl restart isuxi.perl.service && perl ~/slack.pl deployed"'
