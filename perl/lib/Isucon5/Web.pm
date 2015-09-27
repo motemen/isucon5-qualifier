@@ -105,12 +105,12 @@ sub _prefetch_users {
     global_stash()->{users} //= {};
 
     my $rels = db->select_all('SELECT * FROM users');
-    global_stash()->{users}{id} //= do {
+    global_stash()->{users}->{id} //= do {
         +{
             map { ( $_->{id} => $_ ) } @$rels
         };
     };
-    global_stash()->{users}{account} //= do {
+    global_stash()->{users}->{account} //= do {
         +{
             map { ( $_->{account_name} => $_) } @$rels
         };
@@ -128,7 +128,7 @@ sub get_user {
 sub user_from_account {
     my ($account_name) = @_;
     _prefetch_users();
-    my $user = global_stash()>{users}{account_name}{$account_name};
+    my $user = global_stash()->{users}{account_name}{$account_name};
     abort_content_not_found() if (!$user);
     return $user;
 }
