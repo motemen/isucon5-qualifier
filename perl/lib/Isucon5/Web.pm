@@ -259,11 +259,11 @@ SQL
         last if @$comments_of_friends+0 >= 10;
     }
 
-    my $friends_query = 'SELECT * FROM relations WHERE one = ? OR another = ? ORDER BY created_at DESC';
+    my $friends_query = 'SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC';
     my %friends = ();
     my $friends = [];
-    for my $rel (@{db->select_all($friends_query, current_user()->{id}, current_user()->{id})}) {
-        my $key = ($rel->{one} == current_user()->{id} ? 'another' : 'one');
+    for my $rel (@{db->select_all($friends_query, current_user()->{id})}) {
+        my $key = 'another';
         $friends{$rel->{$key}} ||= do {
             my $friend = get_user($rel->{$key});
             $rel->{account_name} = $friend->{account_name};
