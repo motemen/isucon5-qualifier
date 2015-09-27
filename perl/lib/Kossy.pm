@@ -83,6 +83,7 @@ sub build_app {
                 }
             }
         },
+        cache => 2,
     );
 
     sub {
