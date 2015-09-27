@@ -30,7 +30,7 @@ while (1) {
     for my $c (@$comments) {
         $db->query(
             'UPDATE comments SET owner_id = ? WHERE id = ?',
-            $owner_by_entry_id->{$c->{entry_id}},
+            $owner_id_by_entry_id->{$c->{entry_id}},
             $c->{id},
         );
     }
