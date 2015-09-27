@@ -190,7 +190,7 @@ sub mark_footprint {
     if ($user_id != current_user()->{id}) {
         my $id = db->select_one('SELECT id FROM footprints WHERE user_id = ? AND owner_id = ? AND DATE(created_at) = DATE(CURRENT_TIMESTAMP()) ORDER BY created_at DESC LIMIT 1', $user_id, current_user()->{id});
         if ($id) {
-            db->query('UPDATE footprints SET created_at = NOW() WHERE id = ?', $id);
+            db->query('UPDATE footprints SET created_at = NOW() WHERE id = ? AND id > 500000', $id);
         } else {
             my $query = 'INSERT INTO footprints (user_id,owner_id) VALUES (?,?)';
             db->query($query, $user_id, current_user()->{id});
