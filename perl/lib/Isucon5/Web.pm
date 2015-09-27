@@ -294,8 +294,9 @@ SQL
 #       last if @$entries_of_friends+0 >= 10;
 #   }
 
+    my $cmts_cached = [ map { $dec->decode($_) } split /,/, $memd->get('latest_comments_1000:v1') ];
     my $comments_of_friends = [];
-    for my $comment (@{db->select_all('SELECT * FROM comments ORDER BY created_at DESC LIMIT 1000')}) {
+    for my $comment (@$cmts_cached) {
         next if (!is_friend($comment->{user_id}));
         my $entry = db->select_row('SELECT * FROM entries WHERE id = ?', $comment->{entry_id});
         $entry->{is_private} = ($entry->{private} == 1);
@@ -508,6 +509,18 @@ post '/diary/comment/:entry_id' => [qw(set_global authenticated)] => sub {
     my $query = 'INSERT INTO comments (entry_id, user_id, owner_id, comment) VALUES (?,?,?,?)';
     my $comment = $c->req->param('comment');
     db->query($query, $entry->{id}, current_user()->{id}, $entry->{user_id}, $comment);
+
+    $memd->prepend(
+        'latest_comments_1000:v1',
+        $enc->encode({
+            entry_id => $entry->{id},
+            user_id => current_user()->{id},
+            owner_id => $entry->{user_id},
+            comment => substr($comment, 0, 31),
+            created_at => Time::Piece->new->strftime('%Y-%m-%d %H:%M:%S'),
+        }) . ',',
+    );
+
     redirect('/diary/entry/'.$entry->{id});
 };
 
@@ -579,6 +592,15 @@ get '/initialize' => sub {
             $_->{title} = $title;
             $enc->encode($_);
         } @$entries
+    );
+
+    my $cmts = db->select_all('SELECT * FROM comments ORDER BY created_at DESC LIMIT 1000');
+    $memd->set(
+        'latest_comments_1000:v1',
+        join ',', map {
+            $_->{comment} = substr $_->{comment}, 0, 31;
+            $enc->encode($_);
+        } @$cmts
     );
 };
 
