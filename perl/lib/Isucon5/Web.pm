@@ -38,6 +38,12 @@ sub stash {
     $C->stash;
 }
 
+our $gstash;
+sub global_stash {
+   $gstash //= {};
+   return $gstash;
+}
+
 sub redirect {
     $C->redirect(@_);
 }
@@ -92,16 +98,37 @@ sub push_header_route {
     ($c || $C)->res->headers->header('X-Dispatch' => $route);
 }
 
+
+sub _prefetch_users {
+    return if defined global_stash()->{users};
+
+    global_stash()->{users} //= {};
+
+    my $rels = db->select_all('SELECT * FROM users');
+    global_stash()->{users}->{id} //= do {
+        +{
+            map { ( $_->{id} => $_ ) } @$rels
+        };
+    };
+    global_stash()->{users}->{account} //= do {
+        +{
+            map { ( $_->{account_name} => $_) } @$rels
+        };
+    };
+}
+
 sub get_user {
     my ($user_id) = @_;
-    my $user = db->select_row('SELECT * FROM users WHERE id = ?', $user_id);
+    _prefetch_users();
+    my $user = global_stash()->{users}{id}{$user_id};
     abort_content_not_found() if (!$user);
     return $user;
 }
 
 sub user_from_account {
     my ($account_name) = @_;
-    my $user = db->select_row('SELECT * FROM users WHERE account_name = ?', $account_name);
+    _prefetch_users();
+    my $user = global_stash()->{users}{account_name}{$account_name};
     abort_content_not_found() if (!$user);
     return $user;
 }
